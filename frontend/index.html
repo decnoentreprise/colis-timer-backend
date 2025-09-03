@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Colis Timer</title>
+  <meta name="theme-color" content="#0f766e">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <style>
+    :root{
+      --bg: #0b0f12; --card:#131a1f; --ink:#e7f2ee; --muted:#a7b7b1;
+      --accent:#10b981; --accent-2:#0f766e; --danger:#ef4444; --warn:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;line-height:1.35;display:flex;justify-content:center}
+    .wrap{width:min(900px,100%);padding:clamp(14px,3.8vw,28px)}
+    header{display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap}
+    .logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-weight:700;letter-spacing:.5px}
+    h1{font-size:1.35rem;margin:0}
+    .card{background:var(--card);border:1px solid #203339;box-shadow:0 8px 24px rgba(0,0,0,.28);border-radius:16px;padding:16px}
+    label{display:block;font-size:.95rem;margin:.6rem 0 .3rem;color:var(--muted)}
+    input,button,select,textarea{font-size:1.05rem}
+    input[type=number],input[type=time],input[type=text],select,textarea{width:100%;padding:.7rem .8rem;border-radius:12px;border:1px solid #2a3b40;background:#0e161a;color:var(--ink);outline:none}
+    input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+    textarea{min-height:76px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .res{margin-top:12px;padding:12px;border-radius:12px;background:#0e161a;border:1px dashed #25424a}
+    .big{font-size:1.6rem;font-weight:700}
+    .muted{color:var(--muted)}
+    .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+    button{padding:.7rem 1rem;border-radius:12px;border:0;background:var(--accent-2);color:white;font-weight:600;cursor:pointer}
+    button.secondary{background:#223237;color:var(--ink)}
+    button.warn{background:var(--warn);color:black}
+    button.danger{background:var(--danger)}
+    .error{color:var(--danger);font-weight:600;margin-top:6px;display:none}
+    .menuGrid{display:grid;grid-template-columns:1fr;gap:12px}
+    .menuItem{display:flex;align-items:center;justify-content:space-between;padding:16px;border-radius:12px;background:#0e161a;border:1px solid #203339}
+    .menuItem h3{margin:0;font-size:1.05rem}
+    .pill{border:1px solid #2a3b40;border-radius:999px;padding:.25rem .6rem;font-size:.95rem}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{padding:8px;border-bottom:1px solid #22333a;text-align:left;font-size:.95rem;vertical-align:top}
+    th{font-weight:700;color:#cfe6de}
+    tr:hover{background:#0f171b}
+    .badge{padding:.2rem .5rem;border-radius:999px;font-size:.85rem}
+    .ok{background:#143e34;color:#a5f3cf;border:1px solid #1e5246}
+    .ko{background:#402020;color:#fecaca;border:1px solid #6b1f1f}
+    .hidden{display:none !important}
+    nav{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+    nav button{background:#223237}
+    nav .active{background:#0f766e}
+    .alert{background:#3b2f07;color:#ffe8b3;border:1px solid #8a6d1d;border-radius:12px;padding:8px 12px;margin:8px 0}
+    @media (max-width:560px){ .row, .row3{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">CT</div>
+      <div>
+        <h1>Colis Timer</h1>
+        <div class="muted">Menu simple · Historique sécurisé · Paramètres admin · Sauvegarde persistante</div>
+      </div>
+    </header>
+
+    <div id="httpsWarn" class="alert hidden">⚠️ Pour une sauvegarde fiable sur iPhone, utilise un lien <b>HTTPS</b> et ajoute l’app à l’écran d’accueil. En mode “Fichiers” (file://), iOS peut effacer les données.</div>
+
+    <nav>
+      <button class="secondary" data-goto="home" id="navHome">Menu</button>
+      <button class="secondary" data-goto="start">Démarrer palette</button>
+      <button class="secondary" data-goto="history">Historique</button>
+      <button class="secondary" data-goto="settings">Modifier Programme</button>
+    </nav>
+
+    <!-- HOME -->
+    <section id="view-home" class="card">
+      <div class="menuGrid">
+        <div class="menuItem">
+          <div><h3>1. Démarrer palette</h3><div class="muted">Saisie rapide pour les opérateurs</div></div>
+          <button data-goto="start">Ouvrir</button>
+        </div>
+        <div class="menuItem">
+          <div><h3>2. Historique</h3><div class="muted">Consulter/exporter (protégé)</div></div>
+          <button data-goto="history">Ouvrir</button>
+        </div>
+        <div class="menuItem">
+          <div><h3>3. Modifier Programme</h3><div class="muted">Profils & Taux cible (protégé)</div></div>
+          <button data-goto="settings">Ouvrir</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- START -->
+    <section id="view-start" class="card hidden">
+      <div class="row">
+        <div>
+          <label for="employee">Employé</label>
+          <select id="employee"></select>
+        </div>
+        <div>
+          <label>Taux cible</label>
+          <div class="pill" id="rateDisplay">—</div>
+        </div>
+      </div>
+
+      <label for="qty">Nombre de colis sur la palette</label>
+      <input id="qty" type="number" inputmode="numeric" min="0" step="1" placeholder="ex: 75">
+
+      <div class="row">
+        <div>
+          <label for="start">Heure de début</label>
+          <input id="start" type="time">
+          <div class="actions">
+            <button id="nowBtn" type="button" class="secondary">Mettre maintenant</button>
+            <button id="startNewBtn" type="button">Démarrer nouvelle palette</button>
+          </div>
+        </div>
+        <div>
+          <label for="breaks">Pauses cumulées (min)</label>
+          <input id="breaks" type="number" min="0" step="1" placeholder="0">
+          <div class="actions">
+            <button id="finishBtn" type="button" class="warn">Terminer cette palette</button>
+            <button id="clearBtn" type="button" class="secondary">Effacer</button>
+          </div>
+        </div>
+      </div>
+
+      <label for="comment">Commentaire (optionnel)</label>
+      <textarea id="comment" placeholder="Ex: palettes mélangées, attente carrefour, etc."></textarea>
+
+      <div class="error" id="err">Entre une quantité valide et sélectionne un employé.</div>
+
+      <div class="res" id="out">
+        <div class="big">—</div>
+        <div class="muted" id="sub">Saisis la quantité, choisis l’employé et démarre.</div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="view-history" class="card hidden">
+      <div id="histLockBox" class="">
+        <div id="histLockMsg" class="muted">Historique protégé — Définis un mot de passe admin (première fois) ou déverrouille.</div>
+        <div class="actions">
+          <button id="histSetPwdBtn" type="button">Définir MDP</button>
+          <button id="histUnlockBtn" type="button" class="secondary">Déverrouiller</button>
+        </div>
+      </div>
+
+      <div id="histContent" class="hidden">
+        <div class="actions" style="justify-content:space-between;gap:6px">
+          <div style="font-weight:700">Historique</div>
+          <div>
+            <select id="filterEmp"></select>
+            <button id="exportCsvBtn" class="secondary" type="button">Exporter CSV</button>
+            <button id="exportJsonBtn" class="secondary" type="button">Export JSON</button>
+            <button id="importJsonBtn" class="secondary" type="button">Import JSON</button>
+            <input id="importFile" type="file" accept=".json" class="hidden">
+            <button id="clearLogBtn" class="danger" type="button">Vider</button>
+          </div>
+        </div>
+        <table id="logTable">
+          <thead>
+            <tr>
+              <th>Date</th><th>Employé</th><th>Colis</th><th>Début</th><th>Fin</th><th>Pauses</th><th>Autorisé</th><th>Réel</th><th>Résultat</th><th>Commentaire</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="card hidden">
+      <div id="setLockBox" class="">
+        <div id="setLockMsg" class="muted">Paramètres protégés — Définis un mot de passe admin (première fois) ou déverrouille.</div>
+        <div class="actions">
+          <button id="setSetPwdBtn" type="button">Définir MDP</button>
+          <button id="setUnlockBtn" type="button" class="secondary">Déverrouiller</button>
+        </div>
+      </div>
+
+      <div id="setContent" class="hidden">
+        <div class="row">
+          <div>
+            <label for="adminRate">Taux cible (colis/heure)</label>
+            <input id="adminRate" type="number" min="1" step="1">
+            <div class="actions"><button id="saveRateBtn" type="button">Enregistrer le taux</button></div>
+          </div>
+          <div>
+            <label>Mot de passe admin</label>
+            <div class="actions"><button id="changePwdBtn" type="button" class="secondary">Changer le mot de passe</button></div>
+          </div>
+        </div>
+
+        <div class="row3" style="margin-top:8px">
+          <div>
+            <label for="newEmpName">Ajouter un profil</label>
+            <input id="newEmpName" type="text" placeholder="Nom employé">
+            <div class="actions"><button id="addEmpBtn" type="button">Ajouter</button></div>
+          </div>
+          <div>
+            <label for="renameEmpSel">Renommer</label>
+            <select id="renameEmpSel"></select>
+            <input id="renameEmpName" type="text" placeholder="Nouveau nom">
+            <div class="actions"><button id="renameEmpBtn" type="button" class="secondary">Renommer</button></div>
+          </div>
+          <div>
+            <label for="deleteEmpSel">Supprimer</label>
+            <select id="deleteEmpSel"></select>
+            <div class="actions"><button id="deleteEmpBtn" type="button" class="danger">Supprimer</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="muted" style="margin-top:12px">Fonctionne hors ligne. Installable (PWA). Données stockées en IndexedDB sur l’appareil.</footer>
+  </div>
+
+<script>
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(console.error); }
+  // HTTPS warning
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+    document.getElementById('httpsWarn').classList.remove('hidden');
+  }
+
+  // --- IndexedDB minimal wrapper ---
+  const DB_NAME = 'ct_db_v7';
+  const STORE = 'kv';
+  function idbOpen(){
+    return new Promise((resolve, reject)=>{
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = (e)=>{
+        const db = req.result;
+        if (!db.objectStoreNames.contains(STORE)){
+          db.createObjectStore(STORE);
+        }
+      };
+      req.onsuccess = ()=> resolve(req.result);
+      req.onerror = ()=> reject(req.error);
+    });
+  }
+  async function idbGet(key){
+    const db = await idbOpen();
+    return new Promise((resolve, reject)=>{
+      const tx = db.transaction(STORE, 'readonly');
+      const store = tx.objectStore(STORE);
+      const req = store.get(key);
+      req.onsuccess = ()=> resolve(req.result);
+      req.onerror = ()=> reject(req.error);
+    });
+  }
+  async function idbSet(key, val){
+    const db = await idbOpen();
+    return new Promise((resolve, reject)=>{
+      const tx = db.transaction(STORE, 'readwrite');
+      const store = tx.objectStore(STORE);
+      const req = store.put(val, key);
+      req.onsuccess = ()=> resolve(true);
+      req.onerror = ()=> reject(req.error);
+    });
+  }
+
+  // --- Crypto helpers (SHA-256) ---
+  async function sha256Hex(str){
+    const enc = new TextEncoder().encode(str);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  function randHex(n=16){ return [...crypto.getRandomValues(new Uint8Array(n))].map(b=>b.toString(16).padStart(2,'0')).join(''); }
+
+  // --- Time helpers ---
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function fmtHMSFromMinutes(minutes){
+    const total = Math.round(minutes*60);
+    const h = Math.floor(total/3600);
+    const m = Math.floor((total%3600)/60);
+    const s = total%60;
+    return `${h} h ${pad(m)} min ${pad(s)} s`;
+  }
+  function toMinutes(hhmm){ const [h,m] = hhmm.split(':').map(Number); return h*60+m; }
+  function fromMinutes(min){ const h = Math.floor(min/60); const m = Math.floor(min%60); return pad(h)+':'+pad(m); }
+  function nowHHMM(){ const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  function todayISO(){ const d = new Date(); return d.toISOString(); }
+
+  // --- Keys ---
+  const K_PROFILES = 'profiles';
+  const K_SESSIONS = 'sessions';
+  const K_RATE = 'rate';
+  const K_ADMIN = 'admin';
+
+  // --- State (loaded from DB) ---
+  const state = {
+    profiles: [],
+    sessions: [],
+    admin: null,       // {hash,salt}
+    rate: 50,
+    unlockedHistory: false,
+    unlockedSettings: false,
+  };
+
+  // --- UI helpers ---
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => document.querySelectorAll(sel);
+  function uid(){ return Math.random().toString(36).slice(2,10); }
+  function getEmployeeName(id){ const p = state.profiles.find(x=>x.id===id); return p? p.name : '—'; }
+
+  // --- Navigation
+  $$('#navHome, [data-goto]').forEach(b => b.addEventListener('click', (e)=>{
+    const goto = e.currentTarget.getAttribute('data-goto') || 'home';
+    showView(goto);
+  }));
+  function showView(name){
+    ['home','start','history','settings'].forEach(v => $('#view-'+v).classList.add('hidden'));
+    $('#view-'+name).classList.remove('hidden');
+    $$('#navHome, nav [data-goto]').forEach(b => b.classList.remove('active'));
+    [...$$('nav [data-goto]')].find(b=>b.getAttribute('data-goto')===name)?.classList.add('active');
+    if (name==='history'){ ensureHistoryLock(); }
+    if (name==='settings'){ ensureSettingsLock(); }
+  }
+
+  // --- DB load & save ---
+  async function loadAll(){
+    const [profiles, sessions, rate, admin] = await Promise.all([
+      idbGet(K_PROFILES), idbGet(K_SESSIONS), idbGet(K_RATE), idbGet(K_ADMIN)
+    ]);
+    state.profiles = Array.isArray(profiles) ? profiles : [{id:uid(),name:'Alice'},{id:uid(),name:'Bob'}];
+    state.sessions = Array.isArray(sessions) ? sessions : [];
+    state.rate = Number(rate||50) || 50;
+    state.admin = admin || null;
+    renderProfiles(); renderSettingsProfiles();
+    $('#rateDisplay').textContent = state.rate + ' colis / heure';
+    $('#adminRate').value = state.rate;
+    renderLog();
+  }
+  async function saveProfiles(){ await idbSet(K_PROFILES, state.profiles); renderProfiles(); renderSettingsProfiles(); }
+  async function saveSessions(){ await idbSet(K_SESSIONS, state.sessions); if(state.unlockedHistory) renderLog(); }
+  async function saveRate(){ await idbSet(K_RATE, state.rate); $('#rateDisplay').textContent = state.rate + ' colis / heure'; }
+  async function saveAdmin(){ await idbSet(K_ADMIN, state.admin); }
+
+  // --- Profiles UI ---
+  function renderProfiles(){
+    const hadSel = $('#employee').value;
+    $('#employee').innerHTML = '<option value="">— Choisir —</option>' + state.profiles.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    if (state.profiles.some(p=>p.id===hadSel)) $('#employee').value = hadSel;
+    $('#filterEmp').innerHTML = '<option value="">Tous</option>' + state.profiles.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  }
+  function renderSettingsProfiles(){
+    const opts = state.profiles.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    $('#renameEmpSel').innerHTML = '<option value="">—</option>' + opts;
+    $('#deleteEmpSel').innerHTML = '<option value="">—</option>' + opts;
+  }
+
+  // --- Compute (Start view) ---
+  function compute(){
+    const q = Number($('#qty').value);
+    const pause = Number($('#breaks').value || 0);
+    if (!isFinite(q) || q <= 0 || !$('#employee').value){
+      $('#err').style.display = ($('#qty').value || $('#employee').value) ? 'block' : 'none';
+      return;
+    }
+    $('#err').style.display = 'none';
+    const minutes = Math.max(0, (q/state.rate)*60 - pause);
+    const big = fmtHMSFromMinutes(minutes);
+    let extra = [];
+    extra.push(`Tps autorisé: ${(q/state.rate*60).toFixed(1)} min` + (pause?` − ${pause} min pauses`:'') + ` = ${minutes.toFixed(1)} min.`);
+    if ($('#start').value){
+      const startMin = toMinutes($('#start').value);
+      const endMin = (startMin + minutes) % (24*60);
+      extra.push(`Heure de fin: ${fromMinutes(endMin)}`);
+    }
+    $('#out .big').textContent = big;
+    $('#sub').textContent = extra.join(' · ');
+  }
+  ['input','change'].forEach(evt=>{
+    ['#qty','#start','#breaks','#employee','#comment'].forEach(s=>$(s).addEventListener(evt, compute));
+  });
+  $('#nowBtn').addEventListener('click', ()=>{ $('#start').value = nowHHMM(); compute(); });
+  $('#startNewBtn').addEventListener('click', ()=>{
+    $('#start').value = nowHHMM(); compute();
+    alert("Palette démarrée pour "+getEmployeeName($('#employee').value)+" à "+$('#start').value);
+  });
+  $('#clearBtn').addEventListener('click', ()=>{
+    $('#qty').value = ''; $('#start').value=''; $('#breaks').value=''; $('#comment').value='';
+    $('#out .big').textContent = '—'; $('#sub').textContent = 'Saisis la quantité, choisis l’employé et démarre.'; $('#err').style.display = 'none';
+  });
+
+  // --- Finish / Sessions ---
+  $('#finishBtn').addEventListener('click', async ()=>{
+    const empId = $('#employee').value;
+    const empName = getEmployeeName(empId);
+    const q = Number($('#qty').value);
+    const pause = Number($('#breaks').value || 0);
+    const startHHMM = $('#start').value || nowHHMM();
+    const endHHMM = nowHHMM();
+    const comment = ($('#comment').value || '').trim();
+    if (!empId || !isFinite(q) || q<=0){ $('#err').style.display='block'; return; }
+    const allowed = Math.max(0, (q/state.rate)*60 - pause);
+    const actMin = Math.max(0, toMinutes(endHHMM) - toMinutes(startHHMM));
+    const ok = actMin <= allowed + 0.0001;
+    state.sessions.unshift({
+      id: uid(), dateISO: todayISO(), employeeId: empId, employeeName: empName,
+      qty: q, rate: state.rate, start: startHHMM, end: endHHMM, breaks: pause,
+      allowedMin: Number(allowed.toFixed(2)), actualMin: Number(actMin.toFixed(2)), ok, comment
+    });
+    await saveSessions();
+    alert("Palette terminée pour "+empName+" — "+(ok?"✅ Dans le temps":"❌ Dépassement"));
+  });
+
+  function renderLog(){
+    const filt = $('#filterEmp')?.value || '';
+    const rows = (filt? state.sessions.filter(s=>s.employeeId===filt) : state.sessions);
+    const tbody = $('#logTable tbody');
+    if (!tbody) return;
+    tbody.innerHTML = rows.map(s=>{
+      const d = new Date(s.dateISO);
+      const dateStr = d.toLocaleDateString()+' '+d.toLocaleTimeString().slice(0,5);
+      const res = s.ok? '<span class="badge ok">✅ OK</span>' : '<span class="badge ko">❌ HS</span>';
+      const comment = s.comment ? s.comment.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
+      return `<tr>
+        <td>${dateStr}</td><td>${s.employeeName}</td><td>${s.qty}</td><td>${s.start}</td><td>${s.end}</td>
+        <td>${s.breaks||0}</td><td>${s.allowedMin.toFixed(1)} min</td><td>${s.actualMin.toFixed(1)} min</td><td>${res}</td><td>${comment}</td>
+      </tr>`;
+    }).join('');
+  }
+  $('#filterEmp')?.addEventListener('change', renderLog);
+  $('#exportCsvBtn')?.addEventListener('click', ()=>{
+    if (!state.sessions.length){ alert("Aucun enregistrement."); return; }
+    const header = ['date_iso','employe','colis','taux','debut','fin','pauses_min','autorise_min','reel_min','resultat','commentaire'];
+    const lines = [header.join(';')];
+    for (const s of state.sessions){
+      lines.push([s.dateISO, s.employeeName, s.qty, s.rate, s.start, s.end, s.breaks||0, s.allowedMin, s.actualMin, s.ok?'OK':'HS', (s.comment||'').replace(/\n/g,' ')].join(';'));
+    }
+    const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download = 'colis-timer-historique.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  });
+  $('#exportJsonBtn')?.addEventListener('click', ()=>{
+    const data = {profiles: state.profiles, sessions: state.sessions, rate: state.rate};
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download = 'colis-timer-sauvegarde.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  });
+  $('#importJsonBtn')?.addEventListener('click', ()=> $('#importFile').click());
+  $('#importFile')?.addEventListener('change', async (e)=>{
+    const file = e.target.files[0]; if (!file) return;
+    const text = await file.text(); let data;
+    try { data = JSON.parse(text); } catch { alert("Fichier invalide."); return; }
+    if (data.profiles && Array.isArray(data.profiles)){ state.profiles = data.profiles; await saveProfiles(); }
+    if (data.sessions && Array.isArray(data.sessions)){ state.sessions = data.sessions; await saveSessions(); }
+    if (data.rate && Number(data.rate)>0){ state.rate = Number(data.rate); await saveRate(); $('#adminRate').value = state.rate; }
+    alert("Import terminé."); renderLog();
+  });
+  $('#clearLogBtn')?.addEventListener('click', async ()=>{
+    if (!state.unlockedHistory) return;
+    if (!state.sessions.length) return;
+    if (confirm("Vider tout l’historique des palettes ?")){ state.sessions = []; await saveSessions(); }
+  });
+
+  // --- Admin lock (shared) ---
+  async function shaPassword(p, salt){ return await sha256Hex(p + ':' + salt); }
+  function ensureAdmin(){ return state.admin; }
+  function lockHistory(){ state.unlockedHistory=false; $('#histContent').classList.add('hidden'); $('#histLockBox').classList.remove('hidden'); }
+  function unlockHistory(){ state.unlockedHistory=true; $('#histLockBox').classList.add('hidden'); $('#histContent').classList.remove('hidden'); renderLog(); }
+  function lockSettings(){ state.unlockedSettings=false; $('#setContent').classList.add('hidden'); $('#setLockBox').classList.remove('hidden'); }
+  function unlockSettings(){ state.unlockedSettings=true; $('#setLockBox').classList.add('hidden'); $('#setContent').classList.remove('hidden'); }
+
+  function ensureHistoryLock(){
+    if (!state.unlockedHistory){ lockHistory(); }
+    $('#histLockMsg').textContent = state.admin ? "Entre le mot de passe admin pour déverrouiller l’historique." : "Première utilisation : définis un mot de passe admin.";
+  }
+  function ensureSettingsLock(){
+    if (!state.unlockedSettings){ lockSettings(); }
+    $('#setLockMsg').textContent = state.admin ? "Entre le mot de passe admin pour déverrouiller les paramètres." : "Première utilisation : définis un mot de passe admin.";
+  }
+
+  // History lock buttons
+  $('#histSetPwdBtn').addEventListener('click', async ()=>{
+    if (ensureAdmin()){ alert("Un mot de passe existe déjà. Utilise Déverrouiller ou change-le dans Paramètres."); return; }
+    const p1 = prompt("Nouveau mot de passe admin :"); if (!p1) return;
+    const p2 = prompt("Confirme le mot de passe :"); if (p1!==p2){ alert("Les mots de passe ne correspondent pas."); return; }
+    const salt = randHex(16); const hash = await shaPassword(p1, salt);
+    state.admin = {hash, salt}; await saveAdmin(); alert("Mot de passe défini."); unlockHistory();
+  });
+  $('#histUnlockBtn').addEventListener('click', async ()=>{
+    if (!ensureAdmin()){ alert("Aucun mot de passe défini. Utilise Définir MDP."); return; }
+    const p = prompt("Mot de passe admin :"); if (!p) return;
+    const hash = await shaPassword(p, state.admin.salt);
+    if (hash===state.admin.hash){ unlockHistory(); } else { alert("Mot de passe incorrect."); }
+  });
+
+  // Settings lock buttons
+  $('#setSetPwdBtn').addEventListener('click', async ()=>{
+    if (ensureAdmin()){ alert("Un mot de passe existe déjà. Utilise Déverrouiller ou Changer le MDP."); return; }
+    const p1 = prompt("Nouveau mot de passe admin :"); if (!p1) return;
+    const p2 = prompt("Confirme le mot de passe :"); if (p1!==p2){ alert("Les mots de passe ne correspondent pas."); return; }
+    const salt = randHex(16); const hash = await shaPassword(p1, salt);
+    state.admin = {hash, salt}; await saveAdmin(); alert("Mot de passe défini."); unlockSettings();
+  });
+  $('#setUnlockBtn').addEventListener('click', async ()=>{
+    if (!ensureAdmin()){ alert("Aucun mot de passe défini. Utilise Définir MDP."); return; }
+    const p = prompt("Mot de passe admin :"); if (!p) return;
+    const hash = await shaPassword(p, state.admin.salt);
+    if (hash===state.admin.hash){ unlockSettings(); } else { alert("Mot de passe incorrect."); }
+  });
+  $('#changePwdBtn').addEventListener('click', async ()=>{
+    if (!state.unlockedSettings){ alert("Déverrouille d’abord."); return; }
+    const cur = prompt("Mot de passe actuel :"); if (!cur) return;
+    const test = await shaPassword(cur, state.admin.salt);
+    if (test!==state.admin.hash){ alert("Mot de passe incorrect."); return; }
+    const p1 = prompt("Nouveau mot de passe :"); if (!p1) return;
+    const p2 = prompt("Confirme le mot de passe :"); if (p1!==p2){ alert("Les mots de passe ne correspondent pas."); return; }
+    const salt = randHex(16); const hash = await shaPassword(p1, salt);
+    state.admin = {hash, salt}; await saveAdmin(); alert("Mot de passe modifié.");
+  });
+
+  // --- Settings actions ---
+  $('#saveRateBtn').addEventListener('click', async ()=>{
+    if (!state.unlockedSettings) return;
+    const n = Number($('#adminRate').value);
+    if (!isFinite(n) || n<=0){ alert("Entre un nombre valide (>0)."); return; }
+    state.rate = Math.max(1, n); await saveRate(); alert("Taux cible enregistré : "+state.rate+" colis/heure.");
+  });
+  $('#addEmpBtn').addEventListener('click', async ()=>{
+    if (!state.unlockedSettings) return;
+    const name = ($('#newEmpName').value||'').trim();
+    if (!name) return alert("Nom vide.");
+    state.profiles.push({id: uid(), name}); $('#newEmpName').value=''; await saveProfiles();
+  });
+  $('#renameEmpBtn').addEventListener('click', async ()=>{
+    if (!state.unlockedSettings) return;
+    const id = $('#renameEmpSel').value; const nn = ($('#renameEmpName').value||'').trim();
+    if (!id || !nn) return;
+    const p = state.profiles.find(x=>x.id===id); if (!p) return;
+    p.name = nn; $('#renameEmpName').value=''; await saveProfiles();
+  });
+  $('#deleteEmpBtn').addEventListener('click', async ()=>{
+    if (!state.unlockedSettings) return;
+    const id = $('#deleteEmpSel').value; if (!id) return;
+    const p = state.profiles.find(x=>x.id===id); if (!p) return;
+    if (!confirm("Supprimer le profil "+p.name+" ?")) return;
+    state.profiles = state.profiles.filter(x=>x.id!==id); await saveProfiles();
+  });
+
+  // --- Init ---
+  (async function init(){
+    await loadAll();
+    showView('home');
+  })();
+</script>
+</body>
+</html>
